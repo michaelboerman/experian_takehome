@@ -2,13 +2,20 @@
 title: "sql_question_1"
 author: "Michael Boerman"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document:
+    code_folding: hide
+    code_download: true
 ---
 
-This file can be run at https://posit.cloud/content/5828225.
+This file can be run at https://posit.cloud/content/5828225 and [lives on GitHub here](https://github.com/michaelboerman/experian_takehome/blob/main/code/sql_questions.Rmd).
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  results = 'hide',
+  message = FALSE
+)
 ```
 
 
@@ -84,7 +91,6 @@ execute_query <- function(query_string, con=con) {
 }
 
 
-
 verify_tables_created <- function(table_names, con=con) {
   
   # verify that the list of table names provided at the top 
@@ -107,12 +113,15 @@ verify_tables_created <- function(table_names, con=con) {
 ```
 
 
-```{r create_populate_tables, echo=FALSE}
+```{r create_populate_tables}
+# Now, execute the functions above.
+# We need to use `purrr::map`, since we're iterating over a list.
 
 # list of table names, which are also found in the file names
 table_names <- c("authors", "books", "employees", "salaries")
 
-paste0(here(paste0("code/create_", table_names, "_table.sql"))) |> 
+paste0(here()) |> 
+  paste0("/code/create_", table_names, "_table.sql") |> 
   set_names(table_names) |> 
   map(parse_sql_file) |> 
   map(~execute_query(.x, con))
@@ -121,7 +130,7 @@ paste0(here(paste0("code/create_", table_names, "_table.sql"))) |>
 
 ## SQL Question 1
 **Create a SQL query that shows the TOP 3 authors who sold the most books in total**
-```{sql, connection = con}
+```{sql, connection = con, class.source = 'fold-show'}
 select author_name, sum(sold_copies) as total_books_sold
   from authors
   left join books 
@@ -134,7 +143,7 @@ Upon seeing McDougall's copies sold as orders of magnitude more than Levitt, and
 
 ## SQL Question 2
 **Print every department where the average salary per employee is less then or equal to $700**
-```{sql, connection = con}
+```{sql, connection = con, class.source = 'fold-show'}
 -- instead of a nested-select clause,
 -- use a common table expression 
 -- to first find the average salaries for all departments
