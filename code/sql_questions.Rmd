@@ -1,0 +1,154 @@
+---
+title: "sql_question_1"
+author: "Michael Boerman"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+This file can be run at https://posit.cloud/content/5828225.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r packages_connection_setup}
+library(dplyr)
+library(RSQLite)
+library(DBI)
+library(here)
+library(dbplyr)
+library(readr)
+library(stringr)
+library(purrr)
+
+# Create a local database in memory
+# This will be removed/reset each time the R session is terminated.
+con <- dbplyr::src_memdb()$con
+```
+
+
+```{r create_tables_function}
+
+# We need a function to read in the SQL files and parse out each query within the file.
+# Generally, a file has three commands:
+# 1. drop the table if it already exists,
+# 2. create the table,
+# 3. insert values into the table.
+# 
+# each of these commands will become a character vector in the list
+parse_sql_file <- function(sql_file) { 
+  
+  # test value
+  # sql_file <- here("code/create_authors_table.sql")
+  
+  order_of_commands <- c("drop_table", "create_table", "insert_values")
+
+  
+  # Read in the file
+  each_query_in_file  <- read_file(sql_file) |> 
+    
+    # split the whole string into sub strings before each ;
+    str_split(";") |> 
+    
+    # remove the new lines and tab symbols.
+    map(~ str_replace_all(.x, "\n", "")) |> 
+    map(~ str_replace_all(.x, "\t", "")) |> 
+    
+    # convert from list of character vectors to just character vectors
+    unlist()
+  
+  # since str_split will create a blank after the last query, remove this from the list
+  # # don't look at the gawd-awful non-tidy code
+  each_query_in_file <- each_query_in_file[-length(each_query_in_file)]
+  
+  # for easier viewing, give each character vector a descriptive name of the action performed
+  # in its query.
+  each_query_in_file <- each_query_in_file |> 
+    set_names(order_of_commands) 
+  
+  return(each_query_in_file)
+}
+
+
+# This function executes any command.
+# it accepts a single string as input.
+execute_query <- function(query_string, con=con) {
+  
+  # test value
+  # query_string <- parse_sql_file(here("code/create_authors_table.sql"))
+  
+  query_string |> 
+    map(~ dbExecute(con, .x))
+  
+}
+
+
+
+verify_tables_created <- function(table_names, con=con) {
+  
+  # verify that the list of table names provided at the top 
+  # matches the list of sql table names stored in memory
+  # after the code should have created them
+  
+  desired_tables <- table_names
+  created_tables <- dbListTables(con)
+  
+  if (identical(desired_tables, created_tables) == FALSE) {
+    for (table_to_have_been_created in desired_tables) {
+      if (table_to_have_been_created %in% created_tables) {
+        next()
+      } else {
+        print(str_glue("Warning! {table_to_have_been_created} was NOT created!"))
+      }
+    }
+  }
+}
+```
+
+
+```{r create_populate_tables, echo=FALSE}
+
+# list of table names, which are also found in the file names
+table_names <- c("authors", "books", "employees", "salaries")
+
+paste0(here(paste0("code/create_", table_names, "_table.sql"))) |> 
+  set_names(table_names) |> 
+  map(parse_sql_file) |> 
+  map(~execute_query(.x, con))
+```
+
+
+## SQL Question 1
+**Create a SQL query that shows the TOP 3 authors who sold the most books in total**
+```{sql, connection = con}
+select author_name, sum(sold_copies) as total_books_sold
+  from authors
+  left join books 
+       on authors.book_name = books.book_name
+ group by author_name
+ order by sold_copies desc
+```
+P.S.: I've enjoyed many books from John Paulos, particularly his "A Mathematician Reads the Newspaper" and "A Mathematician Plays the Stock Market". He's got such a fun perspective on life -- except toward those who are not-so-mathematically-competent, as I found in "Innumeracy"! 
+Upon seeing McDougall's copies sold as orders of magnitude more than Levitt, and a quick google search, I suspect data-bias by the table's creator - ha! 
+
+## SQL Question 2
+**Print every department where the average salary per employee is less then or equal to $700**
+```{sql, connection = con}
+-- instead of a nested-select clause,
+-- use a common table expression 
+-- to first find the average salaries for all departments
+with dept_salaries as (
+  select department_name, avg(salary) as average_salary
+      from employees
+      left join salaries
+           on  employees.employee_id = salaries.employee_id
+           and employees.employee_name = salaries.employee_name -- for safe measure!
+     group by department_name
+)
+
+-- now we can filter the table above to just those <= 700 average salary.
+select * 
+  from dept_salaries
+ where average_salary <= 700
+```
