@@ -1,5 +1,5 @@
 ---
-title: "sql_question_1"
+title: "Answers to SQL Code Questions"
 author: "Michael Boerman"
 date: "`r Sys.Date()`"
 output:
@@ -8,7 +8,9 @@ output:
     code_download: true
 ---
 
-This file can be run at https://posit.cloud/content/5828225 and [lives on GitHub here](https://github.com/michaelboerman/experian_takehome/blob/main/code/sql_questions.Rmd).
+<base target="_top"/>
+
+This file can be [viewed on RPubs](https://rpubs.com/michaelboerman/experian_interview_sql_questions), or [run on Posit Cloud](https://posit.cloud/content/5828225), and it [lives on GitHub here](https://github.com/michaelboerman/experian_takehome/blob/main/code/sql_questions.Rmd).
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
