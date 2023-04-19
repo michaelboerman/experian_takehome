@@ -139,6 +139,7 @@ select author_name, sum(sold_copies) as total_books_sold
        on authors.book_name = books.book_name
  group by author_name
  order by sold_copies desc
+ limit 3
 ```
 P.S.: I've enjoyed many books from John Paulos, particularly his "A Mathematician Reads the Newspaper" and "A Mathematician Plays the Stock Market". He's got such a fun perspective on life -- except toward those who are not-so-mathematically-competent, as I found in "Innumeracy"! 
 Upon seeing McDougall's copies sold as orders of magnitude more than Levitt, and a quick google search, I suspect data-bias by the table's creator - ha! 
