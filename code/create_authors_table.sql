@@ -6,10 +6,11 @@ CREATE TABLE IF NOT EXISTS authors (
 );
 
 INSERT INTO authors VALUES 
+  ('Haruki Murakami','Norwegian Wood'),
   ('Haruki Murakami','Kafka on the Shore'),
 	('Christopher McDougall','Born to Run'),
 	('Christopher McDougall','Running with Sherman'),
 	('Christopher McDougall','The Best American Sports Writing'),
 	('Steven Levitt','Freakonomics'),
-	('John Paulos','Beyond Numeracycy');
+	('John Paulos','Beyond Numeracy');
 	

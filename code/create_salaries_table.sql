@@ -11,4 +11,4 @@ INSERT INTO salaries VALUES (500,123,'John Doe'),
 	(1000,556,'Billy Bob'),
 	(400,711,'Robert Hayek'),
 	(1200,235,'Edward Jorgson'),
-	(200,236,'Christine Packardrd');
+	(200,236,'Christine Packard');

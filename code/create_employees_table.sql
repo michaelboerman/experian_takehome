@@ -12,4 +12,4 @@ INSERT INTO employees VALUES
 	('HR',556,'Billy Bob'),
 	('Sales',711,'Robert Hayek'),
 	('Marketing',235,'Edward Jorgson'),
-	('Marketing',236,'Christine Packardrd');
+	('Marketing',236,'Christine Packard');
