@@ -1,7 +1,13 @@
 ### -- Custom -- ###
 
+# some weird mac folder created.
 .DS_Store
+
+# Github can't render HTML files, so don't track the RMd renders
 *.html
+
+# folder from posting to Rpubs; don't need to track it in git.
+*rsconnect* 
 
 ### ------------ ###
 
