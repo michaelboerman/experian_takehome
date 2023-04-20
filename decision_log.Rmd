@@ -59,6 +59,8 @@ I also thought about hard-coding the table-creating queries into four separate `
 I ended up with a blend of these two approaches.
 Instead of reading the excel file and then creating strings in the format of SQL queries, I took a short cut and used an online excel-to-sql-table-creater tool, <https://sqlizer.io>.
 
+![excel_to_query](https://user-images.githubusercontent.com/61358854/233492253-c04f4a62-6395-4a20-b8c9-a923b12cd486.gif)
+
 From here, I copied into a .sql file in my project directory; the files are all viewable in [code/sql_queries](code/sql_queries).
 
 The trade-off was time/effort vs re-useability.
@@ -98,4 +100,9 @@ After a quick search, I found the [`crosstable` package on CRAN](https://cran.r-
 Perhaps because I hadn't heard of it before, or perhaps because it was single-authored, I was hesitant. 
 Once I read [the vignette](https://cran.r-project.org/web/packages/crosstable/vignettes/crosstable.html), though, it was a no brainer: in [like 6 lines of code](https://github.com/michaelboerman/experian_takehome/blob/c2eac75adfcc5e8c9f7ef088f7419e43f22d7a3e/code/r_questions.Rmd#L109-L117) I could produce this table! 
 
+<img width="900" alt="Screen Shot 2023-04-20 at 5 32 27 PM" src="https://user-images.githubusercontent.com/61358854/233492564-8f279c7f-40fe-41e1-89f7-adb358ad9691.png">
 
+
+ 
+ 
+ 
