@@ -10,30 +10,37 @@ output:
 
 <base target="_top"/>
 
-This file can be [viewed on RPubs](https://rpubs.com/michaelboerman/experian_interview_sql_questions), or [run on Posit Cloud](https://posit.cloud/content/5828225), and it [lives on GitHub here](https://github.com/michaelboerman/experian_takehome/blob/main/code/sql_questions.Rmd).
+Want to view this file? [See it on RPubs](https://rpubs.com/michaelboerman/experian_interview_sql_questions).
+
+Want to run this file or make local edits? [Open it on Posit Cloud](https://posit.cloud/content/5828225).
+
+Want to view the change history for this file? [View it on GitHub](https://github.com/michaelboerman/experian_takehome/blob/main/code/sql_questions.Rmd).
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  echo    = TRUE,
-  results = 'hide',
-  message = FALSE
+  echo    = TRUE,           # show the code by default (will be hidden by code folding)
+  results = 'hide',         # don't print the results of each chunk
+  message = FALSE           # don't print messages - but do print errors/warnings.
 )
 ```
 
 
 ```{r packages_connection_setup}
 library(dplyr)
-library(RSQLite)
+library(dbplyr)
 library(DBI)
 library(here)
-library(dbplyr)
 library(readr)
 library(stringr)
 library(purrr)
 
 # Create a local database in memory
 # This will be removed/reset each time the R session is terminated.
+# No need to host online.
 con <- dbplyr::src_memdb()$con
+
+# grab a list of the queries to run.
+sql_query_files <- list.files(here("code/sql_queries"), pattern = ".sql")
 ```
 
 
@@ -48,11 +55,10 @@ con <- dbplyr::src_memdb()$con
 # each of these commands will become a character vector in the list
 parse_sql_file <- function(sql_file) { 
   
-  # test value
+  ### test values
   # sql_file <- here("code/create_authors_table.sql")
   
   order_of_commands <- c("drop_table", "create_table", "insert_values")
-
   
   # Read in the file
   each_query_in_file  <- read_file(sql_file) |> 
@@ -80,6 +86,7 @@ parse_sql_file <- function(sql_file) {
 }
 
 
+
 # This function executes any command.
 # it accepts a single string as input.
 execute_query <- function(query_string, con=con) {
@@ -88,19 +95,18 @@ execute_query <- function(query_string, con=con) {
   # query_string <- parse_sql_file(here("code/create_authors_table.sql"))
   
   query_string |> 
-    map(~ dbExecute(con, .x))
+    map(~ DBI::dbExecute(con, .x))
   
 }
 
 
+# verify that the list of table names provided at the top 
+# matches the list of sql table names stored in memory
+# after the code should have created them
 verify_tables_created <- function(table_names, con=con) {
   
-  # verify that the list of table names provided at the top 
-  # matches the list of sql table names stored in memory
-  # after the code should have created them
-  
   desired_tables <- table_names
-  created_tables <- dbListTables(con)
+  created_tables <- DBI::dbListTables(con)
   
   if (identical(desired_tables, created_tables) == FALSE) {
     for (table_to_have_been_created in desired_tables) {
@@ -117,14 +123,9 @@ verify_tables_created <- function(table_names, con=con) {
 
 ```{r create_populate_tables}
 # Now, execute the functions above.
-# We need to use `purrr::map`, since we're iterating over a list.
+# We need to use `purrr::map`, since we're iterating each function over a list.
 
-# list of table names, which are also found in the file names
-table_names <- c("authors", "books", "employees", "salaries")
-
-paste0(here()) |> 
-  paste0("/code/create_", table_names, "_table.sql") |> 
-  set_names(table_names) |> 
+here("code/sql_queries", sql_query_files) |> 
   map(parse_sql_file) |> 
   map(~execute_query(.x, con))
 ```
@@ -138,9 +139,10 @@ select author_name, sum(sold_copies) as total_books_sold
   left join books 
        on authors.book_name = books.book_name
  group by author_name
- order by sold_copies desc
+ order by total_books_sold desc
  limit 3
 ```
+**Answer:** The top 3 authors who sold the most books from the data given are Christopher McDougall, Steven Levitt, and Haruki Murakami.
 P.S.: I've enjoyed many books from John Paulos, particularly his "A Mathematician Reads the Newspaper" and "A Mathematician Plays the Stock Market". He's got such a fun perspective on life -- except toward those who are not-so-mathematically-competent, as I found in "Innumeracy"! 
 Upon seeing McDougall's copies sold as orders of magnitude more than Levitt, and a quick google search, I suspect data-bias by the table's creator - ha! 
 
@@ -164,3 +166,7 @@ select *
   from dept_salaries
  where average_salary <= 700
 ```
+**Answer:** Marketing and Sales have average employee salaries less than $700.
+
+Note: An alternative approach is to use the first table created and add `having average_salary <= 700` at the end. 
+`having` is the SQL command used as a `where` clause when a `group by` clause is used. 
