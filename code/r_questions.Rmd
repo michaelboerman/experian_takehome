@@ -1,5 +1,5 @@
 ---
-title: "Answers to SQL Code Questions"
+title: "Answers to R Code Questions"
 author: "Michael Boerman"
 date: "`r Sys.Date()`"
 output:
@@ -52,7 +52,7 @@ excel_file_name <- "Interview Assessment Workbook 04.18.23 v.5.xlsx"
 
 ## Reading the Data
 Let's start by reading in the data and viewing it for potential issues. 
-```{r}
+```{r read_data}
 raw_app_data <- here("input_data", excel_file_name) |> 
   read_xlsx(sheet = "Application")
 
@@ -72,7 +72,7 @@ We'll need to replace each of these instances.
 I'll replace the "n/a" and "." values with R's `NA` value using `naniar::replace_with_na_all`.
 I could also add arguments to the original `read_xlsx` call to specify na strings and column types; for example, `read_xlsx(filepath, sheet = "Application", na = c("n/a", "."))`. This would also read the Loan Amount column type correctly as numeric instead of character. Nonetheless, for exploratory sake, I make these changes after reading the raw data:
 
-```{r}
+```{r handle_bad_data}
 # replace_with_na_all is a function from naniar similar to running a case_when
 # or running mutate(across(select(everything()), tidyr::na_if("n/a")))
 cleaned_app_data <- raw_app_data |> 
@@ -93,7 +93,7 @@ cleaned_app_data
 
 ## Clean Column Names
 I'm also going to take a moment to make the column names easier to work with by converting them to `snake_case`, which is all lowercase and replace whitespace with underscore. Just like with the NA cleaning above, I could do this manually, but I'll use a shortcut thanks to the `janitor` package.
-```{r}
+```{r clean_col_names}
 cleaned_app_data <- cleaned_app_data |> 
   janitor::clean_names(case = "snake")
 ```
@@ -103,7 +103,7 @@ Now we're ready for analysis!
 # Analysis
 ## Question 1
 Generates a cross tab table of application outcomes and performance statuses
-```{r}
+```{r q1}
 # see the vignette: https://cran.r-project.org/web/packages/crosstable/vignettes/crosstable.html
 
 cleaned_app_data |> 
@@ -125,7 +125,7 @@ Calculates the mean, median, mode, and standard deviation of the CreditScore.
 The `mode` function in R returns the storage mode, or "type", of an R object.
 I'll create this function for computing the statistical mode, though I'm sure there's some stats package out there with a function.
 This is a spin-off of code found at https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode
-```{r}
+```{r q2_function}
 statistical_mode <- function(data) {
   
   ### test value
@@ -156,7 +156,7 @@ statistical_mode <- function(data) {
 ```
 
 Now I'll call this function, along with mean and median
-```{r}
+```{r q2_call}
 stats_summary <- cleaned_app_data |> 
   summarize(
     mean   = mean(credit_score),
@@ -198,7 +198,7 @@ Creates a histogram of the CreditScore in bands.
 
 I'll assume to use the same bands as I just used above. 
 There are only 6 bands, so the histogram won't be *super* histogram-y.
-```{r}
+```{r q4}
 # ggplot no longer allows for discrete values in geom_histogram
 # In order to use the factor (or character) buckets above,
 # I'll actually use geom_bar
@@ -238,7 +238,7 @@ Therefore the top 3 states with the most applications are CA, WA, and SC.
 
 ## Question 6
 What is the average loan amount for booked loans?
-```{r}
+```{r q6}
 avg_loan_booked <- cleaned_app_data |> 
   filter(loan_booked == "Booked") |> 
   summarize(avg_loan_booked = mean(loan_amount, na.rm = TRUE))
@@ -249,7 +249,7 @@ Therefore the average loan amount for booked loans is `r avg_loan_booked |> defr
 
 ## Question 7
 What is the maximum loan amount for applications with a credit score less than 650?
-```{r}
+```{r q7}
 max_loan_amt <- cleaned_app_data |> 
   filter(credit_score < 650) |> 
   slice_max(loan_amount)
@@ -260,7 +260,7 @@ The maximum loan amount for all applications with scores less than 650 (regardle
 
 ## Question 8
 What is the approval rate for applications?
-```{r}
+```{r q8}
 approval_rates <- cleaned_app_data |> 
   count(application_status) |> 
   mutate(percent_of_total = n/sum(n)) |> 
@@ -272,7 +272,7 @@ The approval rate for all applications is `r approval_rates |> select(percent_of
 
 ## Question 9 
 What is the booked rate for the approved applications?
-```{r}
+```{r q9}
 booked_rates <- cleaned_app_data |> 
   filter(application_status == "Approved") |> 
   count(loan_booked) |> 
@@ -286,7 +286,7 @@ The booked rate for all applications that were approved is `r booked_rates |> se
 
 ## Question 10
 What is the bad (charge off) rate for the loans?
-```{r}
+```{r q10}
 charge_off_rate <- cleaned_app_data |> 
   count(loan_performance) |> 
   mutate(percent_of_total = n/sum(n)) |> 
@@ -294,14 +294,14 @@ charge_off_rate <- cleaned_app_data |>
 
 charge_off_rate
 ```
-The charge-off rate for all loans is `r charge_off_rate |> select(percent_of_total) |> deframe() |> round(3) * 100`%. No comment on how this compares to Discover's charge off rates, my current niche and job duty to forecast :)
+The charge-off rate for all loans is `r charge_off_rate |> select(percent_of_total) |> deframe() |> round(3) * 100`%. No comment on how this compares to Discover's charge off rates, my current niche and job duty to forecast :) (though, I suppose, [it's public now](https://investorrelations.discover.com/newsroom/press-releases/press-release-details/2023/Discover-Financial-Services-Reports-First-Quarter-2023-Net-Income-of-1.0-Billion-or-3.58-Per-Diluted-Share/default.aspx))
 
 
 ## Question 11
 Is there a correlation between credit score and loan amount?
 
 Since the next two questions are similar, I'll create a function to reuse. It's based on the `corrr` package.
-```{r}
+```{r q11}
 find_correlation <- function(variable1, variable2) {
   cleaned_app_data |> 
     select(all_of(c(variable1, variable2))) |> 
@@ -321,7 +321,7 @@ This is moderate correlation and likely significant (statistically and practical
 
 ## Question 12
 Is there a correlation between credit score and loan performance?
-```{r}
+```{r q12}
 # using the function from Question 11
 score_performance_correlation <- find_correlation("credit_score", "loan_performance")
 score_performance_correlation

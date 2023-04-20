@@ -34,7 +34,7 @@ The file is mostly, but not strictly, chronological.
 
 *Decisions I made related to the two SQL questions in the prompt.*
 
-## How to Store the Data
+### How to Store the Data
 
 Early on, I needed to decide how to translate the four tables provided for the authors, books, employees, and salaries.
 On one end of the spectrum, I could have just written queries that I *thought* would work for the data.
@@ -50,7 +50,7 @@ This added a fourth benefit of having four fewer files to keep track of!
 
 Once I found this function, I implemented it and was able to rock and roll with true SQL in an Rmarkdown file.
 
-## How to Create the Table-Creating Queries
+### How to Create the Table-Creating Queries
 
 Next, after finding out *how* to create a local database, I needed to figure out *how to populate it* with the provided data.
 I thought about reading in each sheet of the xlsx file (one per table) into R, then writing a function to insert the data into a text string that could be run by [`DBI::dbExecute`](https://www.rdocumentation.org/packages/DBI/versions/0.5-1/topics/dbExecute).
@@ -68,7 +68,7 @@ I'd have to start the process over if you gave me a whole new dataset, whereas a
 I wouldn't have done it if it weren't *reproduceable*, though.
 Because the queries exist in [code/sql_queries](code/sql_queries), anyone can run [sql_questions.Rmd](code/sql_questions.Rmd) and get the same results as me.
 
-## How to Run the Table-Creating Queries
+### How to Run the Table-Creating Queries
 
 I would have loved to simply execute these .sql files, but I couldn't quite find a way to do so in conjunction with my solution above to use local tables.
 I had to come up with a different way than simply telling the terminal or R to "run these files, please!".
@@ -86,7 +86,7 @@ I'm happy with this solution, all things considered, but I do wish I had figured
 
 *Decisions I made related to the 12 R questions in the prompt, related to [code/r_questions.Rmd](code/r_questions.Rmd).*
 
-## How to Handle Erroneous Data from the Excel File
+### How to Handle Erroneous Data from the Excel File
 The excel file has some obvious issues (full discussion within the script itself). 
 I decided against two things:
 1. Looking at the excel file itself,
@@ -94,13 +94,13 @@ I decided against two things:
 I think maintaining the first principle helped me replicate a truer process of data exploration, since the data is not always in a csv/xlsx file (nor should it need to be!)
 Maintaining the second principle helped me explore the data sequentially to show my problem-solving steps better than if I had just re-written the code that reads in the data. 
 
-## Using New Packages
+### Using New Packages
 I needed to decide how to create a cross-table simply (read: not writing \LaTeX code!) and quickly. 
 After a quick search, I found the [`crosstable` package on CRAN](https://cran.r-project.org/web/packages/crosstable/crosstable.pdf).
 Perhaps because I hadn't heard of it before, or perhaps because it was single-authored, I was hesitant. 
-Once I read [the vignette](https://cran.r-project.org/web/packages/crosstable/vignettes/crosstable.html), though, it was a no brainer: in [like 6 lines of code](https://github.com/michaelboerman/experian_takehome/blob/c2eac75adfcc5e8c9f7ef088f7419e43f22d7a3e/code/r_questions.Rmd#L109-L117) I could produce this table! 
+Once I read [the vignette](https://cran.r-project.org/web/packages/crosstable/vignettes/crosstable.html), though, it was a no brainer: in [lless than 10 lines of code](https://github.com/michaelboerman/experian_takehome/blob/c2eac75adfcc5e8c9f7ef088f7419e43f22d7a3e/code/r_questions.Rmd#L109-L117) produced this table! 
 
-<img width="900" alt="Screen Shot 2023-04-20 at 5 32 27 PM" src="https://user-images.githubusercontent.com/61358854/233492564-8f279c7f-40fe-41e1-89f7-adb358ad9691.png">
+<img width="900" alt="cross-tab-table" src="https://user-images.githubusercontent.com/61358854/233492564-8f279c7f-40fe-41e1-89f7-adb358ad9691.png">
 
 
  

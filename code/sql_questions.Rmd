@@ -18,16 +18,15 @@ Want to view the change history for this file? [View it on GitHub](https://githu
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  echo    = TRUE,           # show the code by default (will be hidden by code folding)
-  results = 'hide',         # don't print the results of each chunk
-  message = FALSE           # don't print messages - but do print errors/warnings.
+  echo    = TRUE,    # show the code by default (will be hidden by code folding)
+  results = 'hide',  # don't print the results of each chunk
+  message = FALSE    # don't print messages - but do print errors/warnings.
 )
 ```
 
 
 ```{r packages_connection_setup}
 library(dplyr)
-library(dbplyr)
 library(DBI)
 library(here)
 library(readr)
@@ -145,7 +144,7 @@ select author_name, sum(sold_copies) as total_books_sold
 **Answer:** The top 3 authors who sold the most books from the data given are Christopher McDougall, Steven Levitt, and Haruki Murakami.
 
 P.S.: I've enjoyed many books from John Allen Paulos, particularly his *[A Mathematician Reads the Newspaper](https://www.goodreads.com/book/show/195024.A_Mathematician_Reads_the_Newspaper?ac=1&from_search=true&qid=Logw1ilK9J&rank=3)* and *[A Mathematician Plays the Stock Market](https://www.goodreads.com/book/show/153708.A_Mathematician_Plays_The_Stock_Market)*. He's got such a fun perspective on life -- except toward those who are not-so-mathematically-competent, as I found in *Innumeracy*! 
-Upon seeing McDougall's copies sold as orders of magnitude more than Levitt, and a quick google search, I suspect data-bias by the table's creator - ha! 
+Upon seeing McDougall's copies sold as orders of magnitude more than Levitt, and a quick google search, I suspect bias by the table's creator - ha! 
 
 ## SQL Question 2
 **Print every department where the average salary per employee is less then or equal to $700**
