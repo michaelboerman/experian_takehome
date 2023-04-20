@@ -31,9 +31,10 @@ library(dplyr)
 library(knitr)
 library(ggplot2)
 library(tibble)
-library(corrr)   # for easy correlation in datafrmaes instead of matrices
-library(naniar)  # for replace_with_na function :) 
-library(janitor) # for snake_case column names :) 
+library(naniar)     # for replace_with_na function :) 
+library(janitor)    # for snake_case column names :) 
+library(crosstable) # for easy, beautiful cross table
+library(corrr)      # for easy correlation in datafrmaes instead of matrices
 
 # let's parameterize this in case it were to change
 # or we wanted to run the code on a different, similar file.
@@ -80,6 +81,19 @@ Let the analysis begin!
 
 # Question 1
 Generates a cross tab table of application outcomes and performance statuses
+```{r}
+# see the vignette: https://cran.r-project.org/web/packages/crosstable/vignettes/crosstable.html
+
+cleaned_app_data |> 
+  crosstable(
+    cols = application_status, 
+    by   = loan_performance,
+    total = "row",
+    percent_digits = 1,
+    showNA = "ifany"
+  ) |> 
+  as_flextable()
+```
 
 
 
@@ -122,14 +136,16 @@ statistical_mode <- function(data) {
 
 Now I'll call this function, along with mean and median
 ```{r}
-cleaned_app_data |> 
+stats_summary <- cleaned_app_data |> 
   summarize(
     mean   = mean(credit_score),
     median = median(credit_score),
     mode   = statistical_mode(credit_score)
   )
+
+stats_summary
 ```
-The mean, median, and mode of Credit Score are `r cleaned_app_data |> select(mean) |> deframe()`, `r cleaned_app_data |> select(median) |> deframe()`, and `r cleaned_app_data |> select(mode) |> deframe()`
+The mean, median, and mode of Credit Score are `r stats_summary |> select(mean) |> deframe() |> round(2)`, `r stats_summary |> select(median) |> deframe()`, and `r stats_summary |> select(mode) |> deframe()`.
 
 # Question 3
 Creates a table of the CreditScore in 50 point bands (< 500, 500-549, 550-599, 600-649, 650-699, 700+)
@@ -166,7 +182,7 @@ There are only 6 bands, so the histogram won't be *super* histogram-y.
 # In order to use the factor (or character) buckets above,
 # I'll actually use geom_bar
 # See https://github.com/tidyverse/ggplot2/issues/1465
-# 
+
 credit_buckets |> 
   ggplot(aes(x = credit_bucket)) + 
   geom_bar() +
@@ -208,18 +224,18 @@ avg_loan_booked <- cleaned_app_data |>
 
 avg_loan_booked
 ```
-Therefore the average loan amount for booked loans is `r avg_loan_booked |> deframe()`
+Therefore the average loan amount for booked loans is `r avg_loan_booked |> deframe() |> round(0)`
 
 # Question 7
 What is the maximum loan amount for applications with a credit score less than 650?
 ```{r}
 max_loan_amt <- cleaned_app_data |> 
-  filter(credit_score <= 650) |> 
+  filter(credit_score < 650) |> 
   slice_max(loan_amount)
 
 max_loan_amt
 ```
-The maximum loan amount for all applications (regardless of status) is `r max_loan_amt |> select(loan_amount) |> deframe()`
+The maximum loan amount for all applications with scores less than 650 (regardless of status) is `r max_loan_amt |> select(loan_amount) |> deframe()`
 
 # Question 8
 What is the approval rate for applications?
@@ -257,13 +273,13 @@ charge_off_rate <- cleaned_app_data |>
 
 charge_off_rate
 ```
-The charge-off rate for all loans is `r charge_off_rate |> select(percent_of_total) |> deframe() |> round(3) * 100`%. No comment on how this compares to Discover's charge off rates, my current niche and job duty to forecast ;) .
+The charge-off rate for all loans is `r charge_off_rate |> select(percent_of_total) |> deframe() |> round(3) * 100`%. No comment on how this compares to Discover's charge off rates, my current niche and job duty to forecast :)
 
 
 # Question 11
 Is there a correlation between credit score and loan amount?
 
-Since the next two questions are similar, I'll create a function to reuse.
+Since the next two questions are similar, I'll create a function to reuse. It's based on the `corrr` package.
 ```{r}
 find_correlation <- function(variable1, variable2) {
   cleaned_app_data |> 
@@ -279,7 +295,7 @@ find_correlation <- function(variable1, variable2) {
 score_amount_correlation <- find_correlation("credit_score", "loan_amount")
 score_amount_correlation
 ```
-The correlation (using pairwise with only complete observations) is `r score_amount_correlation`. 
+The correlation (using pairwise with only complete observations) is `r score_amount_correlation |> round(2)`. 
 This is moderate correlation and likely significant (statistically and practically.)
 
 # Question 12
