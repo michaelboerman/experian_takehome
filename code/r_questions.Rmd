@@ -6,28 +6,34 @@ output:
   html_document:
     code_folding: show
     code_download: true
+    df_print: paged
 ---
 
 <base target="_top"/>
 
-Want to view this file? [See it on RPubs](https://rpubs.com/michaelboerman/experian_interview_sql_questions).
+Want to view this file? [See it on RPubs]().
 
 Want to run this file or make local edits? [Open it on Posit Cloud](https://posit.cloud/content/5828225).
 
-Want to view the change history for this file? [View it on GitHub](https://github.com/michaelboerman/experian_takehome/blob/main/code/sql_questions.Rmd).
+Want to view the change history for this file? [View it on GitHub](https://github.com/michaelboerman/experian_takehome/blob/main/code/r_questions.Rmd).
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  echo    = TRUE,           # show the code by default (will be hidden by code folding)
-  results = 'show',         # do print the results of each chunk
-  message = FALSE           # don't print messages - but do print errors/warnings.
+  echo    = TRUE,   # show the code by default (will be hidden by code folding)
+  results = 'show', # do print the results of each chunk
+  message = FALSE   # don't print messages - but do print errors/warnings.
 )
 
 library(readxl)
 library(here)
 library(tidyr)
 library(dplyr)
-library(naniar) # for replace_with_na function :) 
+library(knitr)
+library(ggplot2)
+library(tibble)
+library(corrr)   # for easy correlation in datafrmaes instead of matrices
+library(naniar)  # for replace_with_na function :) 
+library(janitor) # for snake_case column names :) 
 
 # let's parameterize this in case it were to change
 # or we wanted to run the code on a different, similar file.
@@ -62,5 +68,226 @@ cleaned_app_data <- raw_app_data |>
 
 cleaned_app_data
 ```
+I'm also going to take a moment to make the column names easier to work with by converting them to `snake_case`, which is all lowercase and replace whitespace with underscore. Just like with the NA cleaning above, I could do this manually, but I'll use a shortcut thanks to the `janitor` package.
+```{r}
+cleaned_app_data <- cleaned_app_data |> 
+  janitor::clean_names(case = "snake")
+```
+
+
 
 Let the analysis begin!
+
+# Question 1
+Generates a cross tab table of application outcomes and performance statuses
+
+
+
+# Question 2
+Calculates the mean, median, mode, and standard deviation of the CreditScore.
+
+The `mode` function in R returns the storage mode, or "type", of an R object.
+I'll create this function for computing the statistical mode, though I'm sure there's some stats package out there with a function.
+This is a spin-off of code found at https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode
+```{r}
+statistical_mode <- function(data) {
+  
+  ### test value
+  # data <- cleaned_app_data$credit_score
+  
+  # first, grab all the unique values
+  # why? in order to 
+  # 
+  unique_data      <- unique(data)
+  
+  # this pipe returns an index in which the credit score that appears most most often.
+  # since it doesn't matter which index it returns, it defaults to grabbing the first.
+  matches <- 
+    
+    # first, create a matrix that lists the index in unique_data that each value from data is found
+    match(data, unique_data) |> 
+    
+    # next, use this awesome function to find out how many time each index occurs
+    tabulate() |> 
+    
+    # finally, find the index which occurs the most number of times.
+    which.max()
+  
+  # Finally, we just return the data that is in this index.
+  statistical_mode <- unique_data[matches]
+  
+  return(statistical_mode)
+}
+```
+
+Now I'll call this function, along with mean and median
+```{r}
+cleaned_app_data |> 
+  summarize(
+    mean   = mean(credit_score),
+    median = median(credit_score),
+    mode   = statistical_mode(credit_score)
+  )
+```
+The mean, median, and mode of Credit Score are `r cleaned_app_data |> select(mean) |> deframe()`, `r cleaned_app_data |> select(median) |> deframe()`, and `r cleaned_app_data |> select(mode) |> deframe()`
+
+# Question 3
+Creates a table of the CreditScore in 50 point bands (< 500, 500-549, 550-599, 600-649, 650-699, 700+)
+```{r}
+credit_buckets <- cleaned_app_data |> 
+  mutate(credit_bucket = case_when(
+    credit_score < 500 ~ "<500",
+    credit_score >= 500 & credit_score <= 549 ~ "500-549",
+    credit_score >= 550 & credit_score <= 599 ~ "550-599",
+    credit_score >= 600 & credit_score <= 649 ~ "600-649",
+    credit_score >= 650 & credit_score <= 699 ~ "650-699",
+    credit_score >= 700 ~ "700+"
+  )) |> 
+  
+  # if we ran summary now, we'd get an error, since summary can't handle character vectors.
+  # as a workaround, we can convert this to a factor, which would probably make
+  # any analysis easier, too.
+  mutate(credit_bucket = as.factor(credit_bucket))
+
+# instead of a full table, I'll just print a summary instead of all rows.
+credit_buckets |> 
+  select(credit_bucket) |> 
+  summary()
+```
+
+
+# Question 4
+Creates a histogram of the CreditScore in bands.
+
+I'll assume to use the same bands as I just used above. 
+There are only 6 bands, so the histogram won't be *super* histogram-y.
+```{r}
+# ggplot no longer allows for discrete values in geom_histogram
+# In order to use the factor (or character) buckets above,
+# I'll actually use geom_bar
+# See https://github.com/tidyverse/ggplot2/issues/1465
+# 
+credit_buckets |> 
+  ggplot(aes(x = credit_bucket)) + 
+  geom_bar() +
+  scale_y_continuous(
+    sec.axis = dup_axis(name = NULL),
+    name = "Number of Customers"
+    ) + 
+  scale_x_discrete(
+    name = "Credit Score Bands"
+  ) + 
+  labs(
+    title = "Histogram of Credit Scores",
+  ) + 
+  theme_minimal() +
+  theme(
+    panel.grid.major.x = element_blank()
+  )
+```
+
+
+# Question 5
+Identify the top three states based on application count
+```{r}
+top_3_states <- cleaned_app_data |> 
+  count(state) |> 
+  arrange(desc(n)) |> 
+  head(3)
+
+top_3_states
+```
+Therefore the top 3 states with the most applications are CA, WA, and SC.
+
+# Question 6
+What is the average loan amount for booked loans?
+```{r}
+avg_loan_booked <- cleaned_app_data |> 
+  filter(loan_booked == "Booked") |> 
+  summarize(avg_loan_booked = mean(loan_amount, na.rm = TRUE))
+
+avg_loan_booked
+```
+Therefore the average loan amount for booked loans is `r avg_loan_booked |> deframe()`
+
+# Question 7
+What is the maximum loan amount for applications with a credit score less than 650?
+```{r}
+max_loan_amt <- cleaned_app_data |> 
+  filter(credit_score <= 650) |> 
+  slice_max(loan_amount)
+
+max_loan_amt
+```
+The maximum loan amount for all applications (regardless of status) is `r max_loan_amt |> select(loan_amount) |> deframe()`
+
+# Question 8
+What is the approval rate for applications?
+```{r}
+approval_rates <- cleaned_app_data |> 
+  count(application_status) |> 
+  mutate(percent_of_total = n/sum(n)) |> 
+  filter(application_status == "Approved")
+
+approval_rates
+```
+The approval rate for all applications is `r approval_rates |> select(percent_of_total) |> deframe() |> round(3) * 100`%.
+
+# Question 9 
+What is the booked rate for the approved applications?
+```{r}
+booked_rates <- cleaned_app_data |> 
+  filter(application_status == "Approved") |> 
+  count(loan_booked) |> 
+  mutate(percent_of_total = n/sum(n)) |> 
+  filter(loan_booked == "Booked")
+
+booked_rates
+```
+The booked rate for all applications that were approved is `r booked_rates |> select(percent_of_total) |> deframe() |> round(3) * 100`%.
+
+
+# Question 10
+What is the bad (charge off) rate for the loans?
+```{r}
+charge_off_rate <- cleaned_app_data |> 
+  count(loan_performance) |> 
+  mutate(percent_of_total = n/sum(n)) |> 
+  filter(loan_performance == "Charge Off")
+
+charge_off_rate
+```
+The charge-off rate for all loans is `r charge_off_rate |> select(percent_of_total) |> deframe() |> round(3) * 100`%. No comment on how this compares to Discover's charge off rates, my current niche and job duty to forecast ;) .
+
+
+# Question 11
+Is there a correlation between credit score and loan amount?
+
+Since the next two questions are similar, I'll create a function to reuse.
+```{r}
+find_correlation <- function(variable1, variable2) {
+  cleaned_app_data |> 
+    select(all_of(c(variable1, variable2))) |> 
+    correlate() |> 
+    stretch() |> 
+    distinct(r) |> 
+    drop_na() |> 
+    deframe() |> 
+    round(4)
+}
+
+score_amount_correlation <- find_correlation("credit_score", "loan_amount")
+score_amount_correlation
+```
+The correlation (using pairwise with only complete observations) is `r score_amount_correlation`. 
+This is moderate correlation and likely significant (statistically and practically.)
+
+# Question 12
+Is there a correlation between credit score and loan performance?
+```{r}
+# using the function from Question 11
+score_performance_correlation <- find_correlation("credit_score", "loan_performance")
+score_performance_correlation
+```
+Wow! The correlation between score and performance is a perfect 1.
+This means that when score goes up, performance will go up, too.
