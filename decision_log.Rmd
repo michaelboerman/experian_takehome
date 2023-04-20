@@ -1,0 +1,52 @@
+---
+title: "Decision Log"
+author: "Michael Boerman"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_download: true
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+<base target="_top"/>
+
+# Introduction
+This file contains a short write-up that includes any decision points I encountered, the decisions that I made, and the rationale for the decisions.
+The file is mostly, but not strictly, chronological.
+
+# SQL Questions
+
+## How to Store the Data
+Early on, I needed to decide how to translate the four tables provided for the authors, books, employees, and salaries. 
+On one end of the spectrum, I could have just written queries that I *thought* would work for the data. 
+On the other end of the spectrum, I could have signed up for some AWS, Snowflake, MongoDB, Postgres service, uploaded the data, and provided screenshots of my queries. 
+
+Neither of these ends - either lazy or complicated - satisfied me, because I wanted a solution that was:
+1. not complicated (for example, no 3rd party services),
+2. shareable to, and reproducible by, anyone (for example, Joe Smith could open my code, run it, and get same results),
+3. verifyable by anyone (for example, the outputs are actual results from actual queries, not just screenshots or "hope-this-works")
+
+After some research, I found [`dbplyr` had a function](https://dbplyr.tidyverse.org/reference/memdb_frame.html) to create any number of databases *in memory*. 
+This added a fourth benefit of having four fewer files to keep track of!
+
+Once I found this function, I implemented it and was able to rock and roll with true SQL in an Rmarkdown file.
+
+
+## How to Create the Tables
+Next, after finding out *how* to create a local database, I needed to figure out *how to populate it* with the provided data.
+I thought about reading in each sheet of the xlsx file (one per table) into R, then writing a function to insert the data into a text string that could be run by [`DBI::dbExecute`](https://www.rdocumentation.org/packages/DBI/versions/0.5-1/topics/dbExecute). 
+I also thought about hard-coding the table-creating queries into four separate `.sql` files and then, somehow, executing these -- maybe that would be via the terminal, or maybe that would be via R. 
+
+I ended up with a blend of these two approaches. 
+Instead of reading the excel file and then creating strings in the format of SQL queries, I took a short cut and used an online excel-to-sql-table-creater tool, https://sqlizer.io. 
+
+From here, I copied into a .sql file in my project directory; the files are all viewable in [code/sql_queries](code/sql_queries).
+
+The trade-off was time/effort vs re-useability. I'd have to start the process over if you gave me a whole new dataset, whereas an R script that reads all the sheets in an excel file and populates sql queries wouldn't blink twice. 
+I wouldn't have done it if it weren't *reproduceable*, though. 
+Because the queries exist in [code/sql_queries](code/sql_queries), anyone can run [sql_questions.Rmd](code/sql_questions.Rmd) and get the same results as me.
+
+
+
