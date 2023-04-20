@@ -7,19 +7,25 @@ output:
     code_folding: show
     code_download: true
     df_print: paged
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    toc_collapsed: true
 ---
 
 <base target="_top"/>
 
-Want to view this file? [See it on RPubs]().
+# Where to Find the Code
+Want to view this file? [See it on RPubs](https://rpubs.com/michaelboerman/experian_interview_r_analysis).
 
 Want to run this file or make local edits? [Open it on Posit Cloud](https://posit.cloud/content/5828225).
 
 Want to view the change history for this file? [View it on GitHub](https://github.com/michaelboerman/experian_takehome/blob/main/code/r_questions.Rmd).
 
-```{r setup, include=FALSE}
+# Setup
+```{r setup, include=TRUE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(
-  echo    = TRUE,   # show the code by default (will be hidden by code folding)
+  echo    = TRUE,   # show the code by default. each chunk controlled with code_folding html setting.
   results = 'show', # do print the results of each chunk
   message = FALSE   # don't print messages - but do print errors/warnings.
 )
@@ -27,6 +33,7 @@ knitr::opts_chunk$set(
 library(readxl)
 library(here)
 library(tidyr)
+library(stringr)
 library(dplyr)
 library(knitr)
 library(ggplot2)
@@ -41,7 +48,9 @@ library(corrr)      # for easy correlation in datafrmaes instead of matrices
 excel_file_name <- "Interview Assessment Workbook 04.18.23 v.5.xlsx"
 ```
 
-# Reading the Data
+# Import Data
+
+## Reading the Data
 Let's start by reading in the data and viewing it for potential issues. 
 ```{r}
 raw_app_data <- here("input_data", excel_file_name) |> 
@@ -54,6 +63,12 @@ I see values in `Loan Booked` and `Loan Performance` with "n/a" as characters, a
 I also see that `Loan Amount` column is listed as a character vector, but it should be a numeric. 
 This helped me find a period in row 549 and an "n/a" in row 588.
 
+I also see state abbreviations that have whitespace between the two letters. 
+
+We'll need to replace each of these instances.
+
+
+## Handle Erroneous Data
 I'll replace the "n/a" and "." values with R's `NA` value using `naniar::replace_with_na_all`.
 I could also add arguments to the original `read_xlsx` call to specify na strings and column types; for example, `read_xlsx(filepath, sheet = "Application", na = c("n/a", "."))`. This would also read the Loan Amount column type correctly as numeric instead of character. Nonetheless, for exploratory sake, I make these changes after reading the raw data:
 
@@ -65,21 +80,28 @@ cleaned_app_data <- raw_app_data |>
   
   # now that the character strings are replaced with NA,
   # we can convert this from character to numeric
-  mutate(`Loan Amount`  = as.numeric(`Loan Amount`))
+  mutate(`Loan Amount` = as.numeric(`Loan Amount`)) |> 
+  
+  # now I'll remove all the whitespaces in State.
+  mutate(State = str_replace_all(State, " ", "")) |>
+
+  # for safe measure, I'll strip any leading and trailing whitespace that may exist in any text column
+  mutate(across(where(is.character), str_squish))
 
 cleaned_app_data
 ```
+
+## Clean Column Names
 I'm also going to take a moment to make the column names easier to work with by converting them to `snake_case`, which is all lowercase and replace whitespace with underscore. Just like with the NA cleaning above, I could do this manually, but I'll use a shortcut thanks to the `janitor` package.
 ```{r}
 cleaned_app_data <- cleaned_app_data |> 
   janitor::clean_names(case = "snake")
 ```
 
+Now we're ready for analysis!
 
-
-Let the analysis begin!
-
-# Question 1
+# Analysis
+## Question 1
 Generates a cross tab table of application outcomes and performance statuses
 ```{r}
 # see the vignette: https://cran.r-project.org/web/packages/crosstable/vignettes/crosstable.html
@@ -97,7 +119,7 @@ cleaned_app_data |>
 
 
 
-# Question 2
+## Question 2
 Calculates the mean, median, mode, and standard deviation of the CreditScore.
 
 The `mode` function in R returns the storage mode, or "type", of an R object.
@@ -110,9 +132,8 @@ statistical_mode <- function(data) {
   # data <- cleaned_app_data$credit_score
   
   # first, grab all the unique values
-  # why? in order to 
-  # 
-  unique_data      <- unique(data)
+  # becuase we need to find out how many times each *unique* value occurs
+  unique_data <- unique(data)
   
   # this pipe returns an index in which the credit score that appears most most often.
   # since it doesn't matter which index it returns, it defaults to grabbing the first.
@@ -127,7 +148,7 @@ statistical_mode <- function(data) {
     # finally, find the index which occurs the most number of times.
     which.max()
   
-  # Finally, we just return the data that is in this index.
+  # Finally, we just return the data (which is the scredit score) that is in this index.
   statistical_mode <- unique_data[matches]
   
   return(statistical_mode)
@@ -147,9 +168,9 @@ stats_summary
 ```
 The mean, median, and mode of Credit Score are `r stats_summary |> select(mean) |> deframe() |> round(2)`, `r stats_summary |> select(median) |> deframe()`, and `r stats_summary |> select(mode) |> deframe()`.
 
-# Question 3
+## Question 3
 Creates a table of the CreditScore in 50 point bands (< 500, 500-549, 550-599, 600-649, 650-699, 700+)
-```{r}
+```{r q3}
 credit_buckets <- cleaned_app_data |> 
   mutate(credit_bucket = case_when(
     credit_score < 500 ~ "<500",
@@ -172,7 +193,7 @@ credit_buckets |>
 ```
 
 
-# Question 4
+## Question 4
 Creates a histogram of the CreditScore in bands.
 
 I'll assume to use the same bands as I just used above. 
@@ -203,9 +224,9 @@ credit_buckets |>
 ```
 
 
-# Question 5
+## Question 5
 Identify the top three states based on application count
-```{r}
+```{r q5}
 top_3_states <- cleaned_app_data |> 
   count(state) |> 
   arrange(desc(n)) |> 
@@ -215,7 +236,7 @@ top_3_states
 ```
 Therefore the top 3 states with the most applications are CA, WA, and SC.
 
-# Question 6
+## Question 6
 What is the average loan amount for booked loans?
 ```{r}
 avg_loan_booked <- cleaned_app_data |> 
@@ -226,7 +247,7 @@ avg_loan_booked
 ```
 Therefore the average loan amount for booked loans is `r avg_loan_booked |> deframe() |> round(0)`
 
-# Question 7
+## Question 7
 What is the maximum loan amount for applications with a credit score less than 650?
 ```{r}
 max_loan_amt <- cleaned_app_data |> 
@@ -237,7 +258,7 @@ max_loan_amt
 ```
 The maximum loan amount for all applications with scores less than 650 (regardless of status) is `r max_loan_amt |> select(loan_amount) |> deframe()`
 
-# Question 8
+## Question 8
 What is the approval rate for applications?
 ```{r}
 approval_rates <- cleaned_app_data |> 
@@ -249,7 +270,7 @@ approval_rates
 ```
 The approval rate for all applications is `r approval_rates |> select(percent_of_total) |> deframe() |> round(3) * 100`%.
 
-# Question 9 
+## Question 9 
 What is the booked rate for the approved applications?
 ```{r}
 booked_rates <- cleaned_app_data |> 
@@ -263,7 +284,7 @@ booked_rates
 The booked rate for all applications that were approved is `r booked_rates |> select(percent_of_total) |> deframe() |> round(3) * 100`%.
 
 
-# Question 10
+## Question 10
 What is the bad (charge off) rate for the loans?
 ```{r}
 charge_off_rate <- cleaned_app_data |> 
@@ -276,7 +297,7 @@ charge_off_rate
 The charge-off rate for all loans is `r charge_off_rate |> select(percent_of_total) |> deframe() |> round(3) * 100`%. No comment on how this compares to Discover's charge off rates, my current niche and job duty to forecast :)
 
 
-# Question 11
+## Question 11
 Is there a correlation between credit score and loan amount?
 
 Since the next two questions are similar, I'll create a function to reuse. It's based on the `corrr` package.
@@ -298,7 +319,7 @@ score_amount_correlation
 The correlation (using pairwise with only complete observations) is `r score_amount_correlation |> round(2)`. 
 This is moderate correlation and likely significant (statistically and practically.)
 
-# Question 12
+## Question 12
 Is there a correlation between credit score and loan performance?
 ```{r}
 # using the function from Question 11
