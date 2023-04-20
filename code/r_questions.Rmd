@@ -328,3 +328,5 @@ score_performance_correlation
 ```
 Wow! The correlation between score and performance is a perfect 1.
 This means that when score goes up, performance will go up, too.
+
+*Author:  [Michael Boerman](https://www.michaelboerman.com)*

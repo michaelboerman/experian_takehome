@@ -8,45 +8,94 @@ output:
     toc: true
     toc_depth: 3
     toc_float: true
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
 
 <base target="_top"/>
 
+Want to view this file?
+[See it on RPubs](https://rpubs.com/michaelboerman/experian_interview_decision_log).
+
+Want to run this file or make local edits?
+[Open it on Posit Cloud](https://posit.cloud/content/5828225).
+
+Want to view the change history for this file?
+[View it on GitHub](https://github.com/michaelboerman/experian_takehome/blob/main/decision_log.Rmd).
+
 # Introduction
+
 This file contains a short write-up that includes any decision points I encountered, the decisions that I made, and the rationale for the decisions.
 The file is mostly, but not strictly, chronological.
 
+
 # SQL Questions
 
+*Decisions I made related to the two SQL questions in the prompt.*
+
 ## How to Store the Data
-Early on, I needed to decide how to translate the four tables provided for the authors, books, employees, and salaries. 
-On one end of the spectrum, I could have just written queries that I *thought* would work for the data. 
-On the other end of the spectrum, I could have signed up for some AWS, Snowflake, MongoDB, Postgres service, uploaded the data, and provided screenshots of my queries. 
 
-Neither of these ends - either lazy or complicated - satisfied me, because I wanted a solution that was:
-1. not complicated (for example, no 3rd party services),
-2. shareable to, and reproducible by, anyone (for example, Joe Smith could open my code, run it, and get same results),
-3. verifyable by anyone (for example, the outputs are actual results from actual queries, not just screenshots or "hope-this-works")
+Early on, I needed to decide how to translate the four tables provided for the authors, books, employees, and salaries.
+On one end of the spectrum, I could have just written queries that I *thought* would work for the data.
+On the other end of the spectrum, I could have signed up for some AWS, Snowflake, MongoDB, Postgres service, uploaded the data, and provided screenshots of my queries.
 
-After some research, I found [`dbplyr` had a function](https://dbplyr.tidyverse.org/reference/memdb_frame.html) to create any number of databases *in memory*. 
+Neither of these ends - either lazy or complicated - satisfied me, because I wanted a solution that was: 1.
+not complicated (for example, no 3rd party services), 2.
+shareable to, and reproducible by, anyone (for example, Joe Smith could open my code, run it, and get same results), 3.
+verifyable by anyone (for example, the outputs are actual results from actual queries, not just screenshots or "hope-this-works")
+
+After some research, I found [`dbplyr` had a function](https://dbplyr.tidyverse.org/reference/memdb_frame.html) to create any number of databases *in memory*.
 This added a fourth benefit of having four fewer files to keep track of!
 
 Once I found this function, I implemented it and was able to rock and roll with true SQL in an Rmarkdown file.
 
+## How to Create the Table-Creating Queries
 
-## How to Create the Tables
 Next, after finding out *how* to create a local database, I needed to figure out *how to populate it* with the provided data.
-I thought about reading in each sheet of the xlsx file (one per table) into R, then writing a function to insert the data into a text string that could be run by [`DBI::dbExecute`](https://www.rdocumentation.org/packages/DBI/versions/0.5-1/topics/dbExecute). 
-I also thought about hard-coding the table-creating queries into four separate `.sql` files and then, somehow, executing these -- maybe that would be via the terminal, or maybe that would be via R. 
+I thought about reading in each sheet of the xlsx file (one per table) into R, then writing a function to insert the data into a text string that could be run by [`DBI::dbExecute`](https://www.rdocumentation.org/packages/DBI/versions/0.5-1/topics/dbExecute).
+I also thought about hard-coding the table-creating queries into four separate `.sql` files and then, somehow, executing these -- maybe that would be via the terminal, or maybe that would be via R.
 
-I ended up with a blend of these two approaches. 
-Instead of reading the excel file and then creating strings in the format of SQL queries, I took a short cut and used an online excel-to-sql-table-creater tool, https://sqlizer.io. 
+I ended up with a blend of these two approaches.
+Instead of reading the excel file and then creating strings in the format of SQL queries, I took a short cut and used an online excel-to-sql-table-creater tool, <https://sqlizer.io>.
 
 From here, I copied into a .sql file in my project directory; the files are all viewable in [code/sql_queries](code/sql_queries).
 
-The trade-off was time/effort vs re-useability. I'd have to start the process over if you gave me a whole new dataset, whereas an R script that reads all the sheets in an excel file and populates sql queries wouldn't blink twice. 
-I wouldn't have done it if it weren't *reproduceable*, though. 
+The trade-off was time/effort vs re-useability.
+I'd have to start the process over if you gave me a whole new dataset, whereas an R script that reads all the sheets in an excel file and populates sql queries wouldn't blink twice.
+I wouldn't have done it if it weren't *reproduceable*, though.
 Because the queries exist in [code/sql_queries](code/sql_queries), anyone can run [sql_questions.Rmd](code/sql_questions.Rmd) and get the same results as me.
 
+## How to Run the Table-Creating Queries
+
+I would have loved to simply execute these .sql files, but I couldn't quite find a way to do so in conjunction with my solution above to use local tables.
+I had to come up with a different way than simply telling the terminal or R to "run these files, please!".
+
+I decided to: 1.
+Read all the ".sql" files in the directory as one string per table ([done here](https://github.com/michaelboerman/experian_takehome/blob/c2eac75adfcc5e8c9f7ef088f7419e43f22d7a3e/code/sql_questions.Rmd#L43)) 2.
+Separate the string at each semi-colon, since `;` separate SQL commands ([done here](https://github.com/michaelboerman/experian_takehome/blob/c2eac75adfcc5e8c9f7ef088f7419e43f22d7a3e/code/sql_questions.Rmd#L67)) 3.
+Clean up the remaining fragments of reading in a file, such as the newline and tab characters ([done here](https://github.com/michaelboerman/experian_takehome/blob/c2eac75adfcc5e8c9f7ef088f7419e43f22d7a3e/code/sql_questions.Rmd#L70-L71)) 4.
+Pass each of these cleaned strings into `DBI::dbExecute` with a connection to the in-memory database I created above.
+([done here](https://github.com/michaelboerman/experian_takehome/blob/c2eac75adfcc5e8c9f7ef088f7419e43f22d7a3e/code/sql_questions.Rmd#L92-L100))
+
+I'm happy with this solution, all things considered, but I do wish I had figured out how to simply execute the .sql files directly.
+
+# R Questions
+
+*Decisions I made related to the 12 R questions in the prompt, related to [code/r_questions.Rmd](code/r_questions.Rmd).*
+
+## How to Handle Erroneous Data from the Excel File
+The excel file has some obvious issues (full discussion within the script itself). 
+I decided against two things:
+1. Looking at the excel file itself,
+2. Handling issues within the `read_xlsx` function.
+I think maintaining the first principle helped me replicate a truer process of data exploration, since the data is not always in a csv/xlsx file (nor should it need to be!)
+Maintaining the second principle helped me explore the data sequentially to show my problem-solving steps better than if I had just re-written the code that reads in the data. 
+
+## Using New Packages
+I needed to decide how to create a cross-table simply (read: not writing \LaTeX code!) and quickly. 
+After a quick search, I found the [`crosstable` package on CRAN](https://cran.r-project.org/web/packages/crosstable/crosstable.pdf).
+Perhaps because I hadn't heard of it before, or perhaps because it was single-authored, I was hesitant. 
+Once I read [the vignette](https://cran.r-project.org/web/packages/crosstable/vignettes/crosstable.html), though, it was a no brainer: in [like 6 lines of code](https://github.com/michaelboerman/experian_takehome/blob/c2eac75adfcc5e8c9f7ef088f7419e43f22d7a3e/code/r_questions.Rmd#L109-L117) I could produce this table! 
 
 
